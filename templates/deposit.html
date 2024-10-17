@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Deposit - Fund Management System{% endblock %}
+
+{% block content %}
+<h1>Deposit for {{ user.name }}</h1>
+<form method="POST">
+    <div class="mb-3">
+        <label for="amount" class="form-label">Amount</label>
+        <input type="number" class="form-control" id="amount" name="amount" required>
+    </div>
+    <div class="mb-3">
+        <label for="date" class="form-label">Date</label>
+        <input type="date" class="form-control" id="date" name="date" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Deposit</button>
+</form>
+{% endblock %}

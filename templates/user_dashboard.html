@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard - Fund Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+
+    <h2 class="mt-5">Deposits</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for deposit in deposits.items %}
+                <tr>
+                    <td>{{ deposit.date | format_date }}</td>
+                    <td>{{ deposit.amount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination for deposits -->
+    <nav aria-label="Deposits pagination">
+        <ul class="pagination justify-content-center">
+            {% if deposits.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user_dashboard', page_deposit=deposits.prev_num, page_personal_withdrawal=personal_withdrawals.page, page_group_withdrawal=group_withdrawals.page) }}">Previous</a>
+                </li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ deposits.page }} / {{ deposits.pages }}</span></li>
+            {% if deposits.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user_dashboard', page_deposit=deposits.next_num, page_personal_withdrawal=personal_withdrawals.page, page_group_withdrawal=group_withdrawals.page) }}">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <h2 class="mt-5">Personal Withdrawals</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for withdrawal in personal_withdrawals.items %}
+                <tr>
+                    <td>{{ withdrawal.date | format_date }}</td>
+                    <td>{{ withdrawal.amount }}</td>
+                    <td>{{ withdrawal.reason }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination for personal withdrawals -->
+    <nav aria-label="Personal Withdrawals pagination">
+        <ul class="pagination justify-content-center">
+            {% if personal_withdrawals.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user_dashboard', page_deposit=deposits.page, page_personal_withdrawal=personal_withdrawals.prev_num, page_group_withdrawal=group_withdrawals.page) }}">Previous</a>
+                </li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ personal_withdrawals.page }} / {{ personal_withdrawals.pages }}</span></li>
+            {% if personal_withdrawals.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user_dashboard', page_deposit=deposits.page, page_personal_withdrawal=personal_withdrawals.next_num, page_group_withdrawal=group_withdrawals.page) }}">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <h2 class="mt-5">Group Withdrawals</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for withdrawal in group_withdrawals.items %}
+                <tr>
+                    <td>{{ withdrawal.date | format_date }}</td>
+                    <td>{{ withdrawal.amount }}</td>
+                    <td>{{ withdrawal.reason }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination for group withdrawals -->
+    <nav aria-label="Group Withdrawals pagination">
+        <ul class="pagination justify-content-center">
+            {% if group_withdrawals.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user_dashboard', page_deposit=deposits.page, page_personal_withdrawal=personal_withdrawals.page, page_group_withdrawal=group_withdrawals.prev_num) }}">Previous</a>
+                </li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ group_withdrawals.page }} / {{ group_withdrawals.pages }}</span></li>
+            {% if group_withdrawals.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user_dashboard', page_deposit=deposits.page, page_personal_withdrawal=personal_withdrawals.page, page_group_withdrawal=group_withdrawals.next_num) }}">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

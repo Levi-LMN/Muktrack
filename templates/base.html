@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mukuha Family Chama{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/kTc3KcIGl2wGkLPA2M2Xpk/IspwZt0oWcK6nTkgmTSPgNNn0UOzU0ZVwP5LcFbVxXzIhM1G3i3Mcg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+   <style>
+    /* Existing Custom Styles */
+    body {
+        padding-top: 70px; /* Space for fixed navbar */
+    }
+    footer {
+        background-color: #f8f9fa;
+        padding: 20px 0;
+        position: fixed;
+        width: 100%;
+        bottom: 0;
+    }
+    /* Navbar shadow */
+    .navbar {
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        transition: box-shadow 0.3s ease-in-out;
+    }
+    .navbar:hover {
+        box-shadow: 0 6px 8px -2px rgba(0,0,0,0.15);
+    }
+    /* Dropdown menu alignment */
+    .dropdown-menu-end {
+        right: 0;
+        left: auto;
+    }
+    /* Custom Navbar Backgrounds */
+    .navbar-admin {
+        background-color: #004085; /* Dark Blue for Admin */
+    }
+    .navbar-member {
+        background-color: #006400; /* Dark Green for Member */
+    }
+    /* Adjust text color if necessary */
+    .navbar-admin .nav-link,
+    .navbar-member .nav-link,
+    .navbar-admin .navbar-brand,
+    .navbar-member .navbar-brand,
+    .navbar-admin .dropdown-item,
+    .navbar-member .dropdown-item {
+        color: #ffffff !important;
+    }
+    /* Hover effects for nav links */
+    .navbar-admin .nav-link:hover,
+    .navbar-member .nav-link:hover,
+    .navbar-admin .dropdown-item:hover,
+    .navbar-member .dropdown-item:hover {
+        color: #d4d4d4 !important;
+    }
+    /* Custom Dropdown Menu Styles */
+    .navbar-admin .dropdown-menu {
+        background-color: #004085; /* Same as navbar-admin */
+    }
+    .navbar-admin .dropdown-item {
+        color: #ffffff;
+    }
+    .navbar-admin .dropdown-item:hover {
+        background-color: #00306b;
+        color: #ffffff;
+    }
+    .navbar-member .dropdown-menu {
+        background-color: #006400; /* Same as navbar-member */
+    }
+    .navbar-member .dropdown-item {
+        color: #ffffff;
+    }
+    .navbar-member .dropdown-item:hover {
+        background-color: #004d00;
+        color: #ffffff;
+    }
+    /* Ensure the caret icon contrasts with background */
+    .navbar-admin .navbar-toggler-icon {
+        filter: invert(1);
+    }
+    .navbar-member .navbar-toggler-icon {
+        filter: invert(1);
+    }
+</style>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top
+        {% if current_user %}
+            {% if current_user.role == 'admin' %}
+                navbar-admin
+            {% elif current_user.role == 'member' %}
+                navbar-member
+            {% else %}
+                navbar-light bg-light
+            {% endif %}
+        {% else %}
+            navbar-light bg-light
+        {% endif %}
+    ">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('home') }}">Mukuha Family Chama</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if current_user and current_user.role == 'admin' %}
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                                <i class="fas fa-home me-1"></i> Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'users' %}active{% endif %}" href="{{ url_for('users') }}">
+                                <i class="fas fa-users me-1"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'bulk_deposit' %}active{% endif %}" href="{{ url_for('bulk_deposit') }}">
+                                <i class="fas fa-download me-1"></i> Bulk Deposit
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'audit_log' %}active{% endif %}" href="{{ url_for('audit_log') }}">
+                                <i class="fas fa-file-alt me-1"></i> Audit Log
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'withdraw' %}active{% endif %}" href="{{ url_for('withdraw') }}">
+                                <i class="fas fa-money-check-alt me-1"></i> Withdraw
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'database_management' %}active{% endif %}" href="{{ url_for('database_management') }}">
+                                <i class="fas fa-database me-1"></i> Database Management
+                            </a>
+                        </li>
+                    </ul>
+                {% endif %}
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    {% if current_user %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-2"></i> {{ current_user.name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('user_dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="fas fa-key me-2"></i> Change Password</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i> Login
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4 mb-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p class="mb-0">&copy; 2024 Fund Management System</p>
+        </div>
+    </footer>
+</body>
+</html>

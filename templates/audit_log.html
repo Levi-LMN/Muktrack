@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - Fund Management System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">Audit Log</h1>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.user.name }}</td>
+                    <td>{{ log.action }}</td>
+                </tr>
+                {% endfor %}
+                {% if not logs.items %}
+                <tr>
+                    <td colspan="3" class="text-center">No logs available.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% for page in logs.iter_pages() %}
+                {% if page %}
+                    {% if page != logs.page %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('audit_log', page=page) }}">{{ page }}</a></li>
+                    {% else %}
+                        <li class="page-item active"><span class="page-link">{{ page }}</span></li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

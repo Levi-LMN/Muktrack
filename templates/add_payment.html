@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Payment for {{ user.name }}</title>
+</head>
+<body>
+    <h1>Log Payment for {{ user.name }}</h1>
+    <form method="POST">
+        <label for="payment_date">Payment Date:</label>
+        <input type="date" id="payment_date" name="payment_date" required>
+        <input type="submit" value="Log Payment">
+    </form>
+</body>
+</html>

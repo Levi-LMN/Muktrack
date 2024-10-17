@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Deposit - Fund Management System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">Bulk Deposit</h1>
+    <form id="bulk-deposit-form" class="p-4 border rounded shadow-sm bg-light">
+        <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Users</label>
+            <div id="user-checkboxes">
+                {% for user in users %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="{{ user.id }}" id="user-{{ user.id }}">
+                    <label class="form-check-label" for="user-{{ user.id }}">
+                        {{ user.name }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Submit Bulk Deposit</button>
+    </form>
+</div>
+
+<script>
+document.getElementById('bulk-deposit-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const date = document.getElementById('date').value;
+    const selectedUsers = Array.from(document.querySelectorAll('#user-checkboxes input:checked')).map(el => parseInt(el.value));
+
+    const data = [{
+        date: date,
+        users: selectedUsers
+    }];
+
+    fetch('/bulk_deposit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('An error occurred while processing the bulk deposit.');
+    });
+});
+</script>
+{% endblock %}

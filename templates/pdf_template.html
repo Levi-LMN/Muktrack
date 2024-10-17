@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #dbeafe;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+        }
+
+        @page {
+            margin: 1.5cm;
+            size: A4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            background-color: #ffffff;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            width: 180px;
+            height: 60px;
+            background-color: var(--primary-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .statement-info {
+            text-align: right;
+        }
+
+        .statement-info h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .statement-info p {
+            margin: 0.25rem 0;
+            color: #6b7280;
+        }
+
+        .summary {
+            background: var(--accent-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .summary h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .summary-item h3 {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .summary-item p {
+            margin: 0.5rem 0 0 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            text-align: left;
+            padding: 1rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .total {
+            font-weight: 600;
+            background-color: var(--accent-color);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature {
+            text-align: center;
+            width: 200px;
+        }
+
+        .signature img {
+            width: 150px;
+            height: 60px;
+            margin-bottom: 0.5rem;
+        }
+
+        .signature p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .signature .name {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .watermark {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            opacity: 0.1;
+            font-size: 0.75rem;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            FINBANK
+        </div>
+        <div class="statement-info">
+            <h1>Account Statement</h1>
+            <p>Statement Period: {{ statement_period }}</p>
+            <p>Document #: {{ document_number }}</p>
+            <p>Generated on {{ current_date|format_date }}</p>
+        </div>
+    </div>
+
+    <div class="summary">
+        <h2>Account Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <h3>Account Holder</h3>
+                <p>{{ user.name }}</p>
+            </div>
+            <div class="summary-item">
+                <h3>Account Number</h3>
+                <p>{{ user.account_number }}</p>
+            </div>
+            <div class="summary-item">
+                <h3>Current Balance</h3>
+                <p>{{ current_balance }}</p>
+            </div>
+        </div>
+    </div>
+
+    <h2>Deposits</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Reference</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deposit in deposits %}
+            <tr>
+                <td>{{ deposit.date|format_date }}</td>
+                <td>{{ deposit.reference }}</td>
+                <td>{{ deposit.amount }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total">
+                <td colspan="2">Total Deposits</td>
+                <td>{{ total_deposited }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Withdrawals</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for withdrawal in withdrawals %}
+            <tr>
+                <td>{{ withdrawal.date|format_date }}</td>
+                <td>{{ withdrawal.reference }}</td>
+                <td>{{ withdrawal.amount }}</td>
+                <td>{{ withdrawal.status }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total">
+                <td colspan="3">Total Withdrawals</td>
+                <td>{{ total_withdrawn }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div class="signature">
+            <svg viewBox="0 0 200 80" width="150" height="60">
+                <path d="M20 40 C60 10, 100 70, 180 40" stroke="black" fill="none" stroke-width="2"/>
+            </svg>
+            <p class="name">Sarah Johnson</p>
+            <p>Account Manager</p>
+        </div>
+        <div class="signature">
+            <svg viewBox="0 0 200 80" width="150" height="60">
+                <path d="M20 40 C40 60, 120 20, 180 40" stroke="black" fill="none" stroke-width="2"/>
+            </svg>
+            <p class="name">Michael Chen</p>
+            <p>Financial Officer</p>
+        </div>
+    </div>
+
+    <div class="watermark">
+        FINBANK - Secure Statement
+    </div>
+</body>
+</html>

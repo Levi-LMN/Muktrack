@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Entry - Fund Management System{% endblock %}
+
+{% block content %}
+<h1>Edit {{ model.capitalize() }}</h1>
+
+<form method="POST">
+    {% if model == 'user' %}
+        <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ entry.name }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" value="{{ entry.email }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="role" class="form-label">Role</label>
+            <select class="form-control" id="role" name="role" required>
+                <option value="member" {% if entry.role == 'member' %}selected{% endif %}>Member</option>
+                <option value="admin" {% if entry.role == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+        </div>
+    {% elif model == 'deposit' or model == 'withdrawal' %}
+        <div class="mb-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="number" class="form-control" id="amount" name="amount" value="{{ entry.amount }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" name="date" value="{{ entry.date }}" required>
+        </div>
+        {% if model == 'withdrawal' %}
+            <div class="mb-3">
+                <label for="reason" class="form-label">Reason</label>
+                <input type="text" class="form-control" id="reason" name="reason" value="{{ entry.reason }}" required>
+            </div>
+        {% endif %}
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Update</button>
+    <a href="{{ url_for('database_management') }}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

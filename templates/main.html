@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mukuha Family</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Custom style to maintain transparency */
+        .navbar {
+            background-color: rgba(0, 0, 0, 0.5); /* Change this to adjust transparency */
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-100">
+
+    <!-- Navigation -->
+<!-- Navigation -->
+<nav class="sticky top-0 left-0 w-full z-10 bg-transparent transition duration-300">
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="text-2xl font-bold text-black" id="navbar-title">Mukuha Family</div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#home" class="text-black hover:text-blue-200 transition duration-200 nav-link">Home</a>
+                <a href="#about" class="text-black hover:text-blue-200 transition duration-200 nav-link">About Us</a>
+                <a href="#events" class="text-black hover:text-blue-200 transition duration-200 nav-link">Events</a>
+                <a href="#gallery" class="text-black hover:text-blue-200 transition duration-200 nav-link">Gallery</a>
+                <a href="{{ url_for('index') }}" class="text-black hover:text-blue-200 transition duration-200 nav-link">Chama</a>
+            </div>
+            <!-- Mobile Navigation Toggle -->
+            <div class="md:hidden">
+                <button id="menu-toggle" class="text-black focus:outline-none">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden mt-4">
+            <a href="#home" class="block px-4 py-2 text-black hover:text-blue-200 transition duration-200">Home</a>
+            <a href="#about" class="block px-4 py-2 text-black hover:text-blue-200 transition duration-200">About Us</a>
+            <a href="#events" class="block px-4 py-2 text-black hover:text-blue-200 transition duration-200">Events</a>
+            <a href="#gallery" class="block px-4 py-2 text-black hover:text-blue-200 transition duration-200">Gallery</a>
+            <a href="{{ url_for('index') }}" class="block px-4 py-2 text-black hover:text-blue-200 transition duration-200">Chama</a>
+
+        </div>
+    </div>
+</nav>
+
+<script>
+    // Change navbar background and text color on scroll
+    const navbar = document.querySelector('nav');
+    const navbarTitle = document.getElementById('navbar-title');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 0) {
+            navbar.classList.add('bg-gray-800', 'bg-opacity-80'); // Add a dark background on scroll
+            navbarTitle.classList.remove('text-black'); // Change title text color to white
+            navLinks.forEach(link => link.classList.remove('text-black')); // Change link text color to white
+            navbarTitle.classList.add('text-white'); // Ensure title text is white when scrolling
+            navLinks.forEach(link => link.classList.add('text-white')); // Ensure links are white when scrolling
+        } else {
+            navbar.classList.remove('bg-gray-800', 'bg-opacity-80'); // Remove the background
+            navbarTitle.classList.add('text-black'); // Change title text color to black
+            navLinks.forEach(link => link.classList.add('text-black')); // Change link text color to black
+            navbarTitle.classList.remove('text-white'); // Ensure title text is black when at the top
+            navLinks.forEach(link => link.classList.remove('text-white')); // Ensure links are black when at the top
+        }
+    });
+</script>
+
+
+
+<!-- Hero Section -->
+<section id="home" class="relative h-screen flex items-center justify-center">
+    <img src="../static/img/shosh.jpg" alt="Family Photo" class="absolute inset-0 w-full h-full object-cover object-top"/>
+    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    <div class="relative text-center text-white px-4">
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-4">Mukuha Family</h1>
+        <p class="text-lg md:text-xl lg:text-2xl">Sharing moments, creating memories</p>
+    </div>
+</section>
+
+<style>
+@media (min-width: 768px) {
+    #home img {
+        object-position: center 40%;
+    }
+}
+</style>
+
+
+
+
+    <!-- About Section -->
+    <section id="about" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">About Our Family</h2>
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <img src="../static/img/mukuha-4.jpg" alt="Family Together" class="rounded-lg shadow-lg"/>
+                </div>
+                <div>
+                    <p class="text-lg text-gray-700 leading-relaxed">
+                        The Mukuha family is a generational offspring related bloodline, originating from the renowned lineage of Mr. Paul Muiruri Mukuha and Esther Wanjiru Mukuha.
+                        Over the years, the family has upheld values of unity and hard work, fostering a strong sense of community.
+                        With notable achievements in education and community service, the Mukuha family continues to make a positive impact.
+                        As the generations evolve, they strive to honor their heritage while looking towards a future filled with aspirations and opportunities for growth and development.
+                    </p>
+
+                    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-white rounded-lg shadow hover:shadow-xl transition duration-200">
+                            <i class="fas fa-home text-4xl text-blue-600 mb-2"></i>
+                            <p class="font-semibold">Murang'a County</p>
+                        </div>
+                        <div class="text-center p-4 bg-white rounded-lg shadow hover:shadow-xl transition duration-200">
+                            <i class="fas fa-users text-4xl text-blue-600 mb-2"></i>
+                            <p class="font-semibold">Family of Love</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section id="events" class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">Events</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden transition duration-200 hover:shadow-xl">
+                    <img src="../static/img/mukuha-1.jpg" alt="Summer BBQ" class="w-full h-48 object-cover"/>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">Visit To Ithanga</h3>
+                        <p class="text-gray-600 mb-4">Paid a courtesy visit to Lucy's Aunt</p>
+                        <div class="flex items-center text-gray-500">
+                            <i class="far fa-calendar mr-2"></i>
+                            <span>July 4th, 2023</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden transition duration-200 hover:shadow-xl">
+                    <img src="../static/img/events-2.jpg" alt="Camping Trip" class="w-full h-48 object-cover"/>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">Shem's Birthday</h3>
+                        <p class="text-gray-600 mb-4">He cut a cake for his 5th Birthday!</p>
+                        <div class="flex items-center text-gray-500">
+                            <i class="far fa-calendar mr-2"></i>
+                            <span>Nov, 2024</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden transition duration-200 hover:shadow-xl">
+                    <img src="../static/img/mukuha-5.jpg" alt="Birthday Party" class="w-full h-48 object-cover"/>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">Cousins with shosh</h3>
+                        <p class="text-gray-600 mb-4">A happy celebration at the annual Christmas</p>
+                        <div class="flex items-center text-gray-500">
+                            <i class="far fa-calendar mr-2"></i>
+                            <span>December 25, 2022</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">Family Gallery</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <img src="../static/img/recent-photos-1.jpg" alt="Family Moment 1" class="w-full h-64 object-cover rounded-lg shadow-lg"/>
+                <img src="../static/img/grandad.jpg" alt="Family Moment 2" class="w-full h-64 object-cover rounded-lg shadow-lg"/>
+                <img src="../static/img/IMG_20221225_171330_755.jpg" alt="Family Moment 3" class="w-full h-64 object-cover rounded-lg shadow-lg"/>
+                <img src="../static/img/IMG_20211225_172545_878.jpg" alt="Family Moment 4" class="w-full h-64 object-cover rounded-lg shadow-lg"/>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Mukuha Family</h3>
+                    <p class="text-gray-400">Creating memories</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-gray-400 hover:text-white transition duration-200">Home</a></li>
+                        <li><a href="#about" class="text-gray-400 hover:text-white transition duration-200">About Us</a></li>
+                        <li><a href="#events" class="text-gray-400 hover:text-white transition duration-200">Events</a></li>
+                        <li><a href="#gallery" class="text-gray-400 hover:text-white transition duration-200">Gallery</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Follow Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition duration-200"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition duration-200"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition duration-200"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Mukuha Family. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Navigation Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>
