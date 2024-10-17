@@ -351,6 +351,11 @@ def audit_log():
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).paginate(page=page, per_page=per_page, error_out=False)
     return render_template('audit_log.html', logs=logs)
 
+def format_number(value):
+    return "{:,.0f}".format(value)
+
+app.jinja_env.filters['format_number'] = format_number
+
 @app.route('/database_management')
 @login_required
 @password_change_required
