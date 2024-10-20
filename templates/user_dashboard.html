@@ -8,7 +8,13 @@
         <h1 class="display-4 text-dark mb-4">Welcome, {{ user.name }}</h1>
     </div>
 
-    <div class="row justify-content-center">
+    <div class="text-center mb-4">
+    <a href="{{ url_for('download_user_data', user_id=user.id) }}" class="btn btn-primary">
+        Download User Data (PDF)
+    </a>
+</div>
+
+    <div class="row justify-content-center mb-5">
         <div class="col-md-6">
             <div class="card shadow-lg border-0">
                 <div class="card-header bg-gradient-primary text-white">
@@ -25,7 +31,7 @@
 
     <div class="section mt-5">
         <h2 class="text-primary mb-3">Deposits</h2>
-        <div class="table-responsive rounded shadow-sm">
+        <div class="table-responsive rounded shadow-sm mb-4">
             <table class="table table-hover table-striped align-middle text-center">
                 <thead class="bg-gradient-primary text-white">
                     <tr>
@@ -66,7 +72,7 @@
 
     <div class="section mt-5">
         <h2 class="text-primary mb-3">Personal Withdrawals</h2>
-        <div class="table-responsive rounded shadow-sm">
+        <div class="table-responsive rounded shadow-sm mb-4">
             <table class="table table-hover table-striped align-middle text-center">
                 <thead class="bg-gradient-primary text-white">
                     <tr>
@@ -109,7 +115,7 @@
 
     <div class="section mt-5">
         <h2 class="text-primary mb-3">Group Withdrawals</h2>
-        <div class="table-responsive rounded shadow-sm">
+        <div class="table-responsive rounded shadow-sm mb-4">
             <table class="table table-hover table-striped align-middle text-center">
                 <thead class="bg-gradient-primary text-white">
                     <tr>

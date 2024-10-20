@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}User Analytics - Fund Management System{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-800 mb-6">User Analytics for {{ user.name }}</h1>
+
+<!-- User Statistics -->
+<div class="bg-white shadow-md rounded-lg p-6 mb-8">
+    <h2 class="text-2xl font-semibold text-gray-700 mb-4">User Statistics</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-blue-100 p-4 rounded-lg">
+            <h3 class="text-lg font-medium text-blue-800">Total Deposited</h3>
+            <p class="text-2xl font-bold text-blue-600">Ksh {{ user.total_deposited() | format_number }}</p>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg">
+            <h3 class="text-lg font-medium text-green-800">Total Withdrawn</h3>
+            <p class="text-2xl font-bold text-green-600">Ksh {{ user.total_withdrawn() | format_number }}</p>
+        </div>
+        <div class="bg-purple-100 p-4 rounded-lg">
+            <h3 class="text-lg font-medium text-purple-800">Current Balance</h3>
+            <p class="text-2xl font-bold text-purple-600">Ksh {{ user.balance() | format_number }}</p>
+        </div>
+        <div class="bg-yellow-100 p-4 rounded-lg">
+            <h3 class="text-lg font-medium text-yellow-800">Deposit Frequency</h3>
+            <p class="text-2xl font-bold text-yellow-600">{{ deposit_frequency }}%</p>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Deposit History -->
+<div class="bg-white shadow-md rounded-lg p-6">
+    <h2 class="text-2xl font-semibold text-gray-700 mb-4">Monthly Deposit History</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        {% for month in monthly_deposits %}
+        <div class="bg-white border rounded-lg p-4 text-center shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <h3 class="text-lg font-medium text-gray-800">{{ month.date.strftime('%B %Y') }}</h3>
+            {% if month.deposited %}
+            <span class="bg-green-200 text-green-600 py-1 px-2 rounded-full text-xs">Deposited</span>
+            {% else %}
+            <span class="bg-red-200 text-red-600 py-1 px-2 rounded-full text-xs">Missed</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

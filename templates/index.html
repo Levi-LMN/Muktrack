@@ -18,15 +18,20 @@
         <div class="col-sm-12 col-md-4 mb-3">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title text-success">Total Withdrawn</h5>
+                    <h5 class="card-title text-danger">Total Withdrawn</h5>
                     <p class="card-text h4">{{ "{:,.0f}".format(total_withdrawn) }} Ksh</p>
+                    <hr>
+                    <p class="card-text">
+                        <span class="text-info">Personal: {{ "{:,.0f}".format(total_personal_withdrawn) }} Ksh</span><br>
+                        <span class="text-warning">Group: {{ "{:,.0f}".format(total_group_withdrawn) }} Ksh</span>
+                    </p>
                 </div>
             </div>
         </div>
         <div class="col-sm-12 col-md-4 mb-3">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title text-warning">Total Balance</h5>
+                    <h5 class="card-title text-success">Total Balance</h5>
                     <p class="card-text h4">{{ "{:,.0f}".format(total_balance) }} Ksh</p>
                 </div>
             </div>
@@ -40,7 +45,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Total Deposited</th>
-                    <th>Total Withdrawn</th>
+                    <th>Total Withdrawn (Personal/Group)</th>
                     <th>Balance</th>
                     <th>Actions</th>
                 </tr>
@@ -50,7 +55,14 @@
                 <tr>
                     <td>{{ user.name }}</td>
                     <td>{{ "{:,.0f}".format(user.total_deposited()) }} Ksh</td>
-                    <td>{{ "{:,.0f}".format(user.total_withdrawn()) }} Ksh</td>
+                    <td>
+                        {{ "{:,.0f}".format(user.total_withdrawn()) }} Ksh
+                        <br>
+                        <small>
+                            ({{ "{:,.0f}".format(user_withdrawals[user.id]['personal']) }} /
+                            {{ "{:,.0f}".format(user_withdrawals[user.id]['group']) }})
+                        </small>
+                    </td>
                     <td>{{ "{:,.0f}".format(user.balance()) }} Ksh</td>
                     <td>
                         <a href="{{ url_for('personal_withdrawal', user_id=user.id) }}" class="btn btn-primary btn-sm">
