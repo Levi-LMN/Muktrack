@@ -1050,155 +1050,393 @@ def header_footer(canvas, doc):
     canvas.restoreState()
 
 
-@app.route('/download_user_data/<int:user_id>')
+@app.route('/download_user_report/<int:user_id>')
 @login_required
-@password_change_required
-def download_user_data(user_id):
+@admin_required
+def download_user_report(user_id):
+    # Get user data
     user = User.query.get_or_404(user_id)
+    deposits = user.deposits.order_by(Deposit.date).all()
+    personal_withdrawals = user.withdrawals.filter_by(withdrawal_type='personal').order_by(Withdrawal.date).all()
+    group_withdrawals = user.withdrawals.filter_by(withdrawal_type='group').order_by(Withdrawal.date).all()
 
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{user.name}_report_{timestamp}.pdf"
+
+    # Create PDF buffer
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=1 * inch, bottomMargin=1 * inch,
-                            leftMargin=0.5 * inch, rightMargin=0.5 * inch)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=inch / 2, leftMargin=inch / 2,
+                            topMargin=inch, bottomMargin=inch)
 
-    # Create a template for pages
-    frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
-    template = PageTemplate(id='report_template', frames=frame, onPage=header_footer)
-    doc.addPageTemplates([template])
-
+    styles = getSampleStyleSheet()
     elements = []
 
-    # Custom styles
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='CustomTitle', parent=styles['Title'], fontName=bold_font, fontSize=24,
-                              textColor=colors.HexColor('#2D3748'), spaceAfter=12, alignment=1))
-    styles.add(ParagraphStyle(name='CustomHeading', parent=styles['Heading2'], fontName=bold_font, fontSize=18,
-                              textColor=colors.HexColor('#4A5568'), spaceBefore=12, spaceAfter=6))
-    styles.add(ParagraphStyle(name='CustomBody', parent=styles['BodyText'], fontName=base_font, fontSize=12,
-                              textColor=colors.HexColor('#4A5568')))
+    # Define improved styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'],
+                                 fontName=bold_font, fontSize=18, alignment=1, spaceAfter=24)
+    heading_style = ParagraphStyle('Heading', parent=styles['Heading2'],
+                                   fontName=bold_font, fontSize=14, spaceAfter=12)
+    subheading_style = ParagraphStyle('SubHeading', parent=styles['Heading3'],
+                                      fontName=bold_font, fontSize=12, spaceAfter=8)
+    year_style = ParagraphStyle('YearHeading', parent=styles['Heading3'],
+                                fontName=bold_font, fontSize=13, spaceAfter=10,
+                                alignment=0, backColor=colors.lightgrey,
+                                borderWidth=1, borderColor=colors.grey,
+                                borderPadding=5)
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'],
+                                  fontName=base_font, fontSize=10, spaceAfter=6)
+    cell_style = ParagraphStyle('CellText', parent=styles['Normal'],
+                                fontName=base_font, fontSize=10, spaceAfter=3,
+                                wordWrap='CJK', leading=12)
 
-    # Header
-    elements.append(Paragraph(f"Financial Report for {user.name}", styles['CustomTitle']))
+    # Add logo and title
+    elements.append(Paragraph(f"Financial Report: {user.name}", title_style))
     elements.append(Spacer(1, 0.25 * inch))
 
-    # Account Summary
-    elements.append(Paragraph("Account Summary", styles['CustomHeading']))
+    # Date of report generation
+    elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %H:%M')}", normal_style))
+    elements.append(Spacer(1, 0.5 * inch))
 
-    total_deposited = user.total_deposited()
-    total_withdrawn = user.total_withdrawn()
-    current_balance = user.balance()
+    # User Summary with improved formatting
+    elements.append(Paragraph("User Summary", heading_style))
 
-    account_data = [
-        ["Total Deposited", f"Ksh {total_deposited:,.2f}"],
-        ["Total Withdrawn", f"Ksh {total_withdrawn:,.2f}"],
-        ["Current Balance", f"Ksh {current_balance:,.2f}"]
+    summary_data = [
+        ["Name:", user.name],
+        ["Email:", user.email],
+        ["Role:", user.role],
+        ["Total Deposited:", f"{user.total_deposited():,.0f} Ksh"],
+        ["Total Personal Withdrawals:", f"{sum(w.amount for w in personal_withdrawals):,.0f} Ksh"],
+        ["Total Group Withdrawals:", f"{sum(w.amount for w in group_withdrawals):,.0f} Ksh"],
+        ["Current Balance:", f"{user.balance():,.0f} Ksh"]
     ]
-    account_table = Table(account_data, colWidths=[3 * inch, 3 * inch])
-    account_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F7FAFC')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#4A5568')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, -1), bold_font),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-        ('TOPPADDING', (0, 0), (-1, -1), 12),
-        ('BACKGROUND', (1, 0), (1, -1), colors.HexColor('#EDF2F7')),
-        ('LINEBELOW', (0, 0), (-1, -2), 1, colors.HexColor('#E2E8F0')),
-        ('ROUNDEDCORNERS', [10, 10, 10, 10]),
+
+    summary_table = Table(summary_data, colWidths=[2.5 * inch, 4 * inch])
+    summary_table.setStyle(TableStyle([
+        ('FONT', (0, 0), (-1, -1), base_font, 10),
+        ('FONT', (0, 0), (0, -1), bold_font, 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey)
     ]))
-    elements.append(account_table)
-    elements.append(Spacer(1, 0.25 * inch))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 0.75 * inch))
 
-    # Two-column layout for charts
-    pie_chart = add_pie_chart([total_deposited, total_withdrawn, current_balance],
-                              ['Total Deposited', 'Total Withdrawn', 'Current Balance'])
+    # Function to format date in a more readable way
+    def format_date(date):
+        return date.strftime("%d %b %Y")  # e.g., "17 Jul 2016"
 
-    # Generate some sample data for the line chart
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-    deposit_trend = [random.randint(1000, 5000) for _ in range(6)]
-    withdrawal_trend = [random.randint(500, 3000) for _ in range(6)]
-    line_chart = add_line_chart([deposit_trend, withdrawal_trend], months)
+    # Function to wrap text in Paragraph for table cells
+    def wrap_text(text):
+        if text:
+            return Paragraph(text, cell_style)
+        return ""
 
-    chart_data = [
-        [Paragraph("Fund Distribution", styles['CustomHeading']),
-         Paragraph("Deposit and Withdrawal Trends", styles['CustomHeading'])],
-        [pie_chart, line_chart]
-    ]
-    chart_table = Table(chart_data, colWidths=[4 * inch, 4 * inch])
-    chart_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-    elements.append(chart_table)
-    elements.append(Spacer(1, 0.25 * inch))
+    # Group all transactions by year
+    all_transactions = []
+    for deposit in deposits:
+        all_transactions.append({"type": "deposit", "date": deposit.date, "amount": deposit.amount, "reason": ""})
 
-    # Transactions
-    elements.append(PageBreak())
-    elements.append(Paragraph("Recent Transactions", styles['CustomHeading']))
+    for withdrawal in personal_withdrawals:
+        all_transactions.append(
+            {"type": "personal", "date": withdrawal.date, "amount": withdrawal.amount, "reason": withdrawal.reason})
 
-    # Deposits
-    elements.append(Paragraph("Deposits", styles['CustomBody']))
-    deposits = user.deposits.order_by(Deposit.date.desc()).limit(5).all()
-    deposit_data = [["Date", "Amount"]] + [[deposit.date.strftime("%Y-%m-%d"), f"Ksh {deposit.amount:,.2f}"] for deposit
-                                           in deposits]
-    deposit_table = Table(deposit_data, colWidths=[3 * inch, 3 * inch])
-    deposit_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3182CE')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), bold_font),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#EBF8FF')),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#4A5568')),
-        ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 1), (-1, -1), base_font),
-        ('FONTSIZE', (0, 1), (-1, -1), 12),
-        ('TOPPADDING', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-        ('LINEBELOW', (0, 0), (-1, -2), 1, colors.HexColor('#BEE3F8')),
-        ('ROUNDEDCORNERS', [10, 10, 10, 10]),
-    ]))
-    elements.append(deposit_table)
-    elements.append(Spacer(1, 0.25 * inch))
+    for withdrawal in group_withdrawals:
+        all_transactions.append(
+            {"type": "group", "date": withdrawal.date, "amount": withdrawal.amount, "reason": withdrawal.reason})
 
-    # Withdrawals (personal and group)
-    for withdrawal_type in ['Personal', 'Group']:
-        elements.append(Paragraph(f"{withdrawal_type} Withdrawals", styles['CustomBody']))
-        withdrawals = user.withdrawals.filter_by(withdrawal_type=withdrawal_type.lower()).order_by(
-            Withdrawal.date.desc()).limit(5).all()
-        withdrawal_data = [["Date", "Amount", "Reason"]] + [
-            [withdrawal.date.strftime("%Y-%m-%d"), f"Ksh {withdrawal.amount:,.2f}",
-             Paragraph(withdrawal.reason, styles['CustomBody'])]
-            for withdrawal in withdrawals
-        ]
-        withdrawal_table = Table(withdrawal_data, colWidths=[1.5 * inch, 1.5 * inch, 4 * inch])
-        withdrawal_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#38A169')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), bold_font),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0FFF4')),
-            ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#4A5568')),
-            ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), base_font),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('TOPPADDING', (0, 1), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, -2), 1, colors.HexColor('#C6F6D5')),
-            ('ROUNDEDCORNERS', [10, 10, 10, 10]),
-            ('ALIGN', (2, 1), (2, -1), 'LEFT'),  # Left-align the reason text
-            ('VALIGN', (2, 1), (2, -1), 'MIDDLE'),
+    # Sort all transactions by date
+    all_transactions.sort(key=lambda x: x["date"])
+
+    # Get unique years
+    years = sorted(set(transaction["date"].year for transaction in all_transactions))
+
+    if not years:
+        elements.append(Paragraph("No transaction records found.", normal_style))
+    else:
+        # DEPOSIT SECTION
+        elements.append(Paragraph("Deposit History", heading_style))
+
+        if not deposits:
+            elements.append(Paragraph("No deposit records found.", normal_style))
+        else:
+            by_year_deposits = {}
+            for year in years:
+                by_year_deposits[year] = [d for d in deposits if d.date.year == year]
+
+            # Track if we're on the first year to avoid extra page break
+            first_year = True
+
+            for year in years:
+                year_deposits = by_year_deposits.get(year, [])
+                if year_deposits:
+                    # Add a page break before each year's data except the first one
+                    if not first_year:
+                        elements.append(PageBreak())
+                    first_year = False
+
+                    elements.append(Paragraph(f"{year}", year_style))
+
+                    deposit_data = [["Date", "Amount (Ksh)", "Running Balance"]]
+                    running_balance = sum(d.amount for d in deposits if d.date.year < year)
+
+                    for deposit in year_deposits:
+                        running_balance += deposit.amount
+                        deposit_data.append([
+                            format_date(deposit.date),
+                            f"{deposit.amount:,.0f}",
+                            f"{running_balance:,.0f}"
+                        ])
+
+                    # Add a summary row for the year
+                    deposit_data.append([
+                        f"Total for {year}",
+                        f"{sum(d.amount for d in year_deposits):,.0f}",
+                        ""
+                    ])
+
+                    deposit_table = Table(deposit_data, colWidths=[2 * inch, 2 * inch, 2 * inch])
+                    deposit_table.setStyle(TableStyle([
+                        ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                        ('FONT', (0, 1), (-1, -1), base_font, 10),
+                        ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),  # Highlight total row
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ALIGN', (1, 0), (2, -1), 'RIGHT'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    elements.append(deposit_table)
+                    elements.append(Spacer(1, 0.3 * inch))
+
+        elements.append(PageBreak())
+
+        # PERSONAL WITHDRAWAL SECTION
+        elements.append(Paragraph("Personal Withdrawal History", heading_style))
+
+        if not personal_withdrawals:
+            elements.append(Paragraph("No personal withdrawal records found.", normal_style))
+        else:
+            by_year_personal = {}
+            for year in years:
+                by_year_personal[year] = [w for w in personal_withdrawals if w.date.year == year]
+
+            # Reset first year flag for this section
+            first_year = True
+
+            for year in years:
+                year_withdrawals = by_year_personal.get(year, [])
+                if year_withdrawals:
+                    # Add a page break before each year's data except the first one
+                    if not first_year:
+                        elements.append(PageBreak())
+                    first_year = False
+
+                    elements.append(Paragraph(f"{year}", year_style))
+
+                    p_withdrawal_data = [["Date", "Amount (Ksh)", "Reason"]]
+                    for withdrawal in year_withdrawals:
+                        p_withdrawal_data.append([
+                            format_date(withdrawal.date),
+                            f"{withdrawal.amount:,.0f}",
+                            wrap_text(withdrawal.reason)  # Wrap reason text for personal withdrawals
+                        ])
+
+                    # Add a summary row for the year
+                    p_withdrawal_data.append([
+                        f"Total for {year}",
+                        f"{sum(w.amount for w in year_withdrawals):,.0f}",
+                        ""
+                    ])
+
+                    p_withdrawal_table = Table(p_withdrawal_data, colWidths=[1.5 * inch, 1.5 * inch, 3 * inch])
+                    p_withdrawal_table.setStyle(TableStyle([
+                        ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                        ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),  # Highlight total row
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    elements.append(p_withdrawal_table)
+                    elements.append(Spacer(1, 0.3 * inch))
+
+        elements.append(PageBreak())
+
+        # GROUP WITHDRAWAL SECTION - With improved text wrapping for reasons
+        elements.append(Paragraph("Group Withdrawal History", heading_style))
+
+        if not group_withdrawals:
+            elements.append(Paragraph("No group withdrawal records found.", normal_style))
+        else:
+            by_year_group = {}
+            for year in years:
+                by_year_group[year] = [w for w in group_withdrawals if w.date.year == year]
+
+            # Reset first year flag for this section
+            first_year = True
+
+            for year in years:
+                year_withdrawals = by_year_group.get(year, [])
+                if year_withdrawals:
+                    # Add a page break before each year's data except the first one
+                    if not first_year:
+                        elements.append(PageBreak())
+                    first_year = False
+
+                    elements.append(Paragraph(f"{year}", year_style))
+
+                    g_withdrawal_data = [["Date", "Amount (Ksh)", "Reason"]]
+                    for withdrawal in year_withdrawals:
+                        # Wrap the reason text in a Paragraph object for proper text wrapping
+                        g_withdrawal_data.append([
+                            format_date(withdrawal.date),
+                            f"{withdrawal.amount:,.0f}",
+                            wrap_text(withdrawal.reason)
+                        ])
+
+                    # Add a summary row for the year
+                    g_withdrawal_data.append([
+                        f"Total for {year}",
+                        f"{sum(w.amount for w in year_withdrawals):,.0f}",
+                        ""
+                    ])
+
+                    # Use automatic row heights to accommodate wrapped text
+                    g_withdrawal_table = Table(g_withdrawal_data, colWidths=[1.5 * inch, 1.5 * inch, 3 * inch])
+                    g_withdrawal_table.setStyle(TableStyle([
+                        ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                        ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),  # Highlight total row
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    elements.append(g_withdrawal_table)
+                    elements.append(Spacer(1, 0.3 * inch))
+
+        elements.append(PageBreak())
+
+        # YEARLY SUMMARY SECTION
+        elements.append(Paragraph("Yearly Summary", heading_style))
+
+        yearly_data = [["Year", "Deposits", "Withdrawals", "Net Flow"]]
+
+        for year in years:
+            year_deposits = sum(d.amount for d in deposits if d.date.year == year)
+
+            year_personal = sum(w.amount for w in personal_withdrawals
+                                if w.date.year == year)
+
+            year_group = sum(w.amount for w in group_withdrawals
+                             if w.date.year == year)
+
+            total_withdrawals = year_personal + year_group
+            net_flow = year_deposits - total_withdrawals
+
+            yearly_data.append([
+                f"{year}",
+                f"{year_deposits:,.0f} Ksh",
+                f"{total_withdrawals:,.0f} Ksh",
+                f"{net_flow:,.0f} Ksh"
+            ])
+
+        # Add totals row
+        total_deposits = sum(d.amount for d in deposits)
+        total_withdrawals = sum(w.amount for w in personal_withdrawals + group_withdrawals)
+        total_net = total_deposits - total_withdrawals
+
+        yearly_data.append([
+            "Grand Total",
+            f"{total_deposits:,.0f} Ksh",
+            f"{total_withdrawals:,.0f} Ksh",
+            f"{total_net:,.0f} Ksh"
+        ])
+
+        yearly_table = Table(yearly_data, colWidths=[1.5 * inch, 1.5 * inch, 1.5 * inch, 1.5 * inch])
+        yearly_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -1), base_font, 10),
+            ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),  # Highlight total row
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ]))
-        elements.append(withdrawal_table)
-        elements.append(Spacer(1, 0.25 * inch))
+        elements.append(yearly_table)
 
-    # Build the PDF
-    doc.build(elements)
+        # MONTHLY DETAIL SECTION (for the current year)
+        current_year = datetime.now().year
+        if current_year in years:
+            elements.append(Spacer(1, 0.5 * inch))
+            elements.append(Paragraph(f"Monthly Detail for {current_year}", heading_style))
+
+            # Get monthly data for current year
+            monthly_data = [["Month", "Deposits", "Withdrawals", "Net Flow"]]
+
+            for month in range(1, 13):
+                month_deposits = sum(d.amount for d in deposits
+                                     if d.date.year == current_year and d.date.month == month)
+
+                month_withdrawals = sum(w.amount for w in personal_withdrawals + group_withdrawals
+                                        if w.date.year == current_year and w.date.month == month)
+
+                # Only add months that have activity
+                if month_deposits > 0 or month_withdrawals > 0:
+                    net_flow = month_deposits - month_withdrawals
+
+                    monthly_data.append([
+                        f"{month_name[month]}",
+                        f"{month_deposits:,.0f} Ksh",
+                        f"{month_withdrawals:,.0f} Ksh",
+                        f"{net_flow:,.0f} Ksh"
+                    ])
+
+            # Add year total row
+            year_deposits = sum(d.amount for d in deposits if d.date.year == current_year)
+            year_withdrawals = sum(w.amount for w in personal_withdrawals + group_withdrawals
+                                   if w.date.year == current_year)
+            year_net = year_deposits - year_withdrawals
+
+            monthly_data.append([
+                f"Total {current_year}",
+                f"{year_deposits:,.0f} Ksh",
+                f"{year_withdrawals:,.0f} Ksh",
+                f"{year_net:,.0f} Ksh"
+            ])
+
+            # Only add the table if there are months with activity
+            if len(monthly_data) > 2:  # Header + at least one month + total row
+                monthly_table = Table(monthly_data, colWidths=[1.5 * inch, 1.5 * inch, 1.5 * inch, 1.5 * inch])
+                monthly_table.setStyle(TableStyle([
+                    ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                    ('FONT', (0, 1), (-1, -1), base_font, 10),
+                    ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),  # Highlight total row
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(monthly_table)
+
+    # Build PDF
+    doc.build(elements, onFirstPage=header_footer, onLaterPages=header_footer)
+
+    # Prepare response
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f'financial_report_{user.id}.pdf',
-                     mimetype='application/pdf')
+    return send_file(
+        buffer,
+        download_name=filename,
+        as_attachment=True,
+        mimetype="application/pdf"
+    )
 
 if __name__ == '__main__':
     with app.app_context():

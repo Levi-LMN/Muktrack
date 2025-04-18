@@ -9,9 +9,17 @@
     </div>
 
     <div class="text-center mb-4">
-    <a href="{{ url_for('download_user_data', user_id=user.id) }}" class="btn btn-primary">
-        Download User Data (PDF)
-    </a>
+<!-- Add this button somewhere in the user_dashboard.html template -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Download Reports</h5>
+    </div>
+    <div class="card-body">
+        <a href="{{ url_for('download_user_report', user_id=user.id) }}" class="btn btn-info">
+            <i class="fas fa-file-pdf"></i> Download My Financial Report
+        </a>
+    </div>
+</div>
 </div>
 
     <div class="row justify-content-center mb-5">

@@ -65,9 +65,16 @@
                     </td>
                     <td>{{ "{:,.0f}".format(user.balance()) }} Ksh</td>
                     <td>
-                        <a href="{{ url_for('personal_withdrawal', user_id=user.id) }}" class="btn btn-primary btn-sm">
-                            Personal Withdrawal
-                        </a>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('personal_withdrawal', user_id=user.id) }}" class="btn btn-primary btn-sm">
+                                Personal Withdrawal
+                            </a>
+                            {% if current_user.role == 'admin' %}
+                            <a href="{{ url_for('download_user_report', user_id=user.id) }}" class="btn btn-info btn-sm">
+                                <i class="fas fa-file-pdf"></i> Download Report
+                            </a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
