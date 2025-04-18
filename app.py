@@ -1438,6 +1438,813 @@ def download_user_report(user_id):
         mimetype="application/pdf"
     )
 
+
+@app.route('/download_all_users_report')
+@login_required
+@admin_required
+def download_all_users_report():
+    # Get all users
+    users = User.query.order_by(User.name).all()
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"all_users_report_{timestamp}.pdf"
+
+    # Create PDF buffer
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=inch / 2, leftMargin=inch / 2,
+                            topMargin=inch, bottomMargin=inch)
+
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Define styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'],
+                                 fontName=bold_font, fontSize=18, alignment=1, spaceAfter=24)
+    heading_style = ParagraphStyle('Heading', parent=styles['Heading2'],
+                                   fontName=bold_font, fontSize=14, spaceAfter=12)
+    subheading_style = ParagraphStyle('SubHeading', parent=styles['Heading3'],
+                                      fontName=bold_font, fontSize=12, spaceAfter=8)
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'],
+                                  fontName=base_font, fontSize=10, spaceAfter=6)
+    cell_style = ParagraphStyle('CellText', parent=styles['Normal'],
+                                fontName=base_font, fontSize=10, spaceAfter=3,
+                                wordWrap='CJK', leading=12)
+
+    # Add title and date of generation
+    elements.append(Paragraph("All Users Financial Report", title_style))
+    elements.append(Spacer(1, 0.25 * inch))
+    elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %H:%M')}", normal_style))
+    elements.append(Spacer(1, 0.5 * inch))
+
+    # User Summary Section
+    elements.append(Paragraph("Summary Statistics", heading_style))
+
+    # Calculate summary statistics
+    total_users = len(users)
+    total_deposited = sum(user.total_deposited() for user in users)
+    total_personal_withdrawals = sum(
+        sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='personal').all())
+        for user in users
+    )
+    total_group_withdrawals = sum(
+        sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='group').all())
+        for user in users
+    )
+    total_balance = sum(user.balance() for user in users)
+
+    summary_data = [
+        ["Total Users:", f"{total_users}"],
+        ["Total Deposits:", f"{total_deposited:,.0f} Ksh"],
+        ["Total Personal Withdrawals:", f"{total_personal_withdrawals:,.0f} Ksh"],
+        ["Total Group Withdrawals:", f"{total_group_withdrawals:,.0f} Ksh"],
+        ["Total Current Balance:", f"{total_balance:,.0f} Ksh"]
+    ]
+
+    summary_table = Table(summary_data, colWidths=[3 * inch, 3.5 * inch])
+    summary_table.setStyle(TableStyle([
+        ('FONT', (0, 0), (-1, -1), base_font, 10),
+        ('FONT', (0, 0), (0, -1), bold_font, 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey)
+    ]))
+
+    elements.append(summary_table)
+    elements.append(Spacer(1, 0.5 * inch))
+
+    # Users Detailed Overview
+    elements.append(Paragraph("User Details", heading_style))
+
+    user_details_data = [["Name", "Role", "Deposits", "Personal W/D", "Group W/D", "Balance"]]
+
+    for user in users:
+        deposits = user.total_deposited()
+        personal_withdrawals = sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='personal').all())
+        group_withdrawals = sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='group').all())
+        balance = user.balance()
+
+        user_details_data.append([
+            user.name,
+            user.role,
+            f"{deposits:,.0f}",
+            f"{personal_withdrawals:,.0f}",
+            f"{group_withdrawals:,.0f}",
+            f"{balance:,.0f}"
+        ])
+
+    # Calculate column totals for the table footer
+    total_deposits = sum(user.total_deposited() for user in users)
+    total_personal = sum(
+        sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='personal').all())
+        for user in users
+    )
+    total_group = sum(
+        sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='group').all())
+        for user in users
+    )
+    total_bal = sum(user.balance() for user in users)
+
+    # Add totals row
+    user_details_data.append([
+        "TOTALS",
+        "",
+        f"{total_deposits:,.0f}",
+        f"{total_personal:,.0f}",
+        f"{total_group:,.0f}",
+        f"{total_bal:,.0f}"
+    ])
+
+    # Create table with appropriate column widths
+    user_details_table = Table(user_details_data,
+                               colWidths=[1.5 * inch, 1 * inch, 1.25 * inch, 1.25 * inch, 1.25 * inch, 1.25 * inch])
+    user_details_table.setStyle(TableStyle([
+        ('FONT', (0, 0), (-1, 0), bold_font, 10),
+        ('FONT', (0, 1), (-1, -2), base_font, 10),
+        ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+
+    elements.append(user_details_table)
+    elements.append(PageBreak())
+
+    # Year-by-Year Analysis
+    elements.append(Paragraph("Yearly Analysis", heading_style))
+
+    # Get all transactions to find the range of years
+    all_deposits = Deposit.query.order_by(Deposit.date).all()
+    all_withdrawals = Withdrawal.query.order_by(Withdrawal.date).all()
+
+    if not all_deposits and not all_withdrawals:
+        elements.append(Paragraph("No transaction history found.", normal_style))
+    else:
+        # Extract all years from transactions
+        all_years = set()
+        for deposit in all_deposits:
+            all_years.add(deposit.date.year)
+        for withdrawal in all_withdrawals:
+            all_years.add(withdrawal.date.year)
+
+        years = sorted(all_years)
+
+        # Create yearly analysis
+        yearly_data = [["Year", "Deposits", "Withdrawals", "Net Flow"]]
+
+        for year in years:
+            # Calculate yearly totals
+            year_deposits = sum(d.amount for d in all_deposits if d.date.year == year)
+            year_withdrawals = sum(w.amount for w in all_withdrawals if w.date.year == year)
+            net_flow = year_deposits - year_withdrawals
+
+            yearly_data.append([
+                f"{year}",
+                f"{year_deposits:,.0f} Ksh",
+                f"{year_withdrawals:,.0f} Ksh",
+                f"{net_flow:,.0f} Ksh"
+            ])
+
+        # Add totals row
+        total_deposits = sum(d.amount for d in all_deposits)
+        total_withdrawals = sum(w.amount for w in all_withdrawals)
+        total_net = total_deposits - total_withdrawals
+
+        yearly_data.append([
+            "Grand Total",
+            f"{total_deposits:,.0f} Ksh",
+            f"{total_withdrawals:,.0f} Ksh",
+            f"{total_net:,.0f} Ksh"
+        ])
+
+        yearly_table = Table(yearly_data, colWidths=[1.5 * inch, 2 * inch, 2 * inch, 2 * inch])
+        yearly_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -2), base_font, 10),
+            ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+
+        elements.append(yearly_table)
+        elements.append(Spacer(1, 0.5 * inch))
+
+        # Current Year Monthly Analysis
+        current_year = datetime.now().year
+        if current_year in years:
+            elements.append(Paragraph(f"Monthly Detail for {current_year}", subheading_style))
+
+            # Calculate monthly data for current year
+            monthly_data = [["Month", "Deposits", "Withdrawals", "Net Flow"]]
+
+            for month in range(1, 13):
+                month_deposits = sum(d.amount for d in all_deposits
+                                     if d.date.year == current_year and d.date.month == month)
+
+                month_withdrawals = sum(w.amount for w in all_withdrawals
+                                        if w.date.year == current_year and w.date.month == month)
+
+                # Only include months with activity
+                if month_deposits > 0 or month_withdrawals > 0:
+                    month_name = datetime(current_year, month, 1).strftime('%B')
+                    net_flow = month_deposits - month_withdrawals
+
+                    monthly_data.append([
+                        month_name,
+                        f"{month_deposits:,.0f} Ksh",
+                        f"{month_withdrawals:,.0f} Ksh",
+                        f"{net_flow:,.0f} Ksh"
+                    ])
+
+            # Add year total row
+            year_deposits = sum(d.amount for d in all_deposits if d.date.year == current_year)
+            year_withdrawals = sum(w.amount for w in all_withdrawals if w.date.year == current_year)
+            year_net = year_deposits - year_withdrawals
+
+            monthly_data.append([
+                f"Total {current_year}",
+                f"{year_deposits:,.0f} Ksh",
+                f"{year_withdrawals:,.0f} Ksh",
+                f"{year_net:,.0f} Ksh"
+            ])
+
+            # Only add the table if there are months with activity
+            if len(monthly_data) > 2:  # Header + at least one month + total row
+                monthly_table = Table(monthly_data, colWidths=[1.5 * inch, 2 * inch, 2 * inch, 2 * inch])
+                monthly_table.setStyle(TableStyle([
+                    ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                    ('FONT', (0, 1), (-1, -2), base_font, 10),
+                    ('FONT', (0, -1), (-1, -1), bold_font, 10),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(monthly_table)
+
+    # Top Contributors Section
+    elements.append(PageBreak())
+    elements.append(Paragraph("Top Contributors", heading_style))
+
+    # Sort users by total deposited amount (descending)
+    top_depositors = sorted(users, key=lambda u: u.total_deposited(), reverse=True)[:10]  # Top 10
+
+    if top_depositors:
+        top_depositors_data = [["Rank", "Name", "Total Deposited"]]
+
+        for i, user in enumerate(top_depositors, 1):
+            top_depositors_data.append([
+                f"{i}",
+                user.name,
+                f"{user.total_deposited():,.0f} Ksh"
+            ])
+
+        top_depositors_table = Table(top_depositors_data, colWidths=[1 * inch, 3 * inch, 3 * inch])
+        top_depositors_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -1), base_font, 10),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+
+        elements.append(top_depositors_table)
+    else:
+        elements.append(Paragraph("No deposit records found.", normal_style))
+
+    # Build PDF with header/footer
+    doc.build(elements, onFirstPage=header_footer, onLaterPages=header_footer)
+
+    # Prepare response
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        download_name=filename,
+        as_attachment=True,
+        mimetype="application/pdf"
+    )
+
+
+@app.route('/download_comprehensive_users_report')
+@login_required
+@admin_required
+def download_comprehensive_users_report():
+    # Get all users
+    users = User.query.order_by(User.name).all()
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"comprehensive_users_report_{timestamp}.pdf"
+
+    # Create PDF buffer
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=inch / 2, leftMargin=inch / 2,
+                            topMargin=inch, bottomMargin=inch)
+
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Define styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'],
+                                 fontName=bold_font, fontSize=18, alignment=1, spaceAfter=24)
+    heading_style = ParagraphStyle('Heading', parent=styles['Heading2'],
+                                   fontName=bold_font, fontSize=14, spaceAfter=12)
+    subheading_style = ParagraphStyle('SubHeading', parent=styles['Heading3'],
+                                      fontName=bold_font, fontSize=12, spaceAfter=8)
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'],
+                                  fontName=base_font, fontSize=10, spaceAfter=6)
+    cell_style = ParagraphStyle('CellText', parent=styles['Normal'],
+                                fontName=base_font, fontSize=9, spaceAfter=3,
+                                wordWrap='CJK', leading=11)
+
+    # Format functions
+    def format_currency(amount):
+        return f"{amount:,.0f} Ksh"
+
+    def wrap_text(text):
+        if text:
+            return Paragraph(text, cell_style)
+        return ""
+
+    # Add title and date of generation
+    elements.append(Paragraph("Comprehensive Users Financial Report", title_style))
+    elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %H:%M')}", normal_style))
+    elements.append(Spacer(1, 0.5 * inch))
+
+    # Organization Summary Section
+    elements.append(Paragraph("Organization Summary", heading_style))
+
+    # Calculate overall statistics
+    total_users = len(users)
+    total_deposited = sum(user.total_deposited() for user in users)
+    total_personal_withdrawals = sum(
+        sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='personal').all())
+        for user in users
+    )
+    total_group_withdrawals = sum(
+        sum(w.amount for w in user.withdrawals.filter_by(withdrawal_type='group').all())
+        for user in users
+    )
+    total_withdrawals = total_personal_withdrawals + total_group_withdrawals
+    total_balance = sum(user.balance() for user in users)
+
+    # Get all transactions to find the range of years
+    all_deposits = Deposit.query.order_by(Deposit.date).all()
+    all_withdrawals = Withdrawal.query.order_by(Withdrawal.date).all()
+
+    all_years = set()
+    if all_deposits or all_withdrawals:
+        for deposit in all_deposits:
+            all_years.add(deposit.date.year)
+        for withdrawal in all_withdrawals:
+            all_years.add(withdrawal.date.year)
+
+    years = sorted(all_years)
+
+    # Create organization summary
+    summary_data = [
+        ["Total Users:", f"{total_users}"],
+        ["Active Years:", f"{min(years, default='N/A')} - {max(years, default='N/A')}"],
+        ["Total Deposits:", format_currency(total_deposited)],
+        ["Total Personal Withdrawals:", format_currency(total_personal_withdrawals)],
+        ["Total Group Withdrawals:", format_currency(total_group_withdrawals)],
+        ["Total All Withdrawals:", format_currency(total_withdrawals)],
+        ["Current Total Balance:", format_currency(total_balance)]
+    ]
+
+    summary_table = Table(summary_data, colWidths=[3 * inch, 3.5 * inch])
+    summary_table.setStyle(TableStyle([
+        ('FONT', (0, 0), (-1, -1), base_font, 10),
+        ('FONT', (0, 0), (0, -1), bold_font, 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey)
+    ]))
+
+    elements.append(summary_table)
+
+    # ====================== YEARLY OVERVIEW SECTION ======================
+    elements.append(PageBreak())
+    elements.append(Paragraph("Yearly Financial Overview", heading_style))
+
+    if not years:
+        elements.append(Paragraph("No transaction history found.", normal_style))
+    else:
+        # Create yearly overview table
+        yearly_data = [["Year", "Deposits", "Personal W/D", "Group W/D", "Total W/D", "Net Flow"]]
+
+        for year in years:
+            # Calculate yearly totals
+            year_deposits = sum(d.amount for d in all_deposits if d.date.year == year)
+            year_personal = sum(w.amount for w in all_withdrawals
+                                if w.date.year == year and w.withdrawal_type == 'personal')
+            year_group = sum(w.amount for w in all_withdrawals
+                             if w.date.year == year and w.withdrawal_type == 'group')
+            year_withdrawals = year_personal + year_group
+            net_flow = year_deposits - year_withdrawals
+
+            yearly_data.append([
+                f"{year}",
+                format_currency(year_deposits),
+                format_currency(year_personal),
+                format_currency(year_group),
+                format_currency(year_withdrawals),
+                format_currency(net_flow)
+            ])
+
+        # Add totals row
+        total_deposits = sum(d.amount for d in all_deposits)
+        total_personal = sum(w.amount for w in all_withdrawals if w.withdrawal_type == 'personal')
+        total_group = sum(w.amount for w in all_withdrawals if w.withdrawal_type == 'group')
+        total_all_withdrawals = total_personal + total_group
+        total_net = total_deposits - total_all_withdrawals
+
+        yearly_data.append([
+            "Grand Total",
+            format_currency(total_deposits),
+            format_currency(total_personal),
+            format_currency(total_group),
+            format_currency(total_all_withdrawals),
+            format_currency(total_net)
+        ])
+
+        yearly_table = Table(yearly_data,
+                             colWidths=[1.3 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch])
+        yearly_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -2), base_font, 10),
+            ('FONT', (0, -1), (-1, -1), bold_font, 10),  # Bold for total row
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+
+        elements.append(yearly_table)
+
+    # ====================== MONTHLY OVERVIEW FOR CURRENT YEAR ======================
+    current_year = datetime.now().year
+    if current_year in years:
+        elements.append(Spacer(1, 0.5 * inch))
+        elements.append(Paragraph(f"Monthly Overview for {current_year}", subheading_style))
+
+        # Create monthly overview table
+        monthly_data = [["Month", "Deposits", "Personal W/D", "Group W/D", "Total W/D", "Net Flow"]]
+
+        for month in range(1, 13):
+            month_name = datetime(current_year, month, 1).strftime('%B')
+
+            month_deposits = sum(d.amount for d in all_deposits
+                                 if d.date.year == current_year and d.date.month == month)
+
+            month_personal = sum(w.amount for w in all_withdrawals
+                                 if w.date.year == current_year and w.date.month == month
+                                 and w.withdrawal_type == 'personal')
+
+            month_group = sum(w.amount for w in all_withdrawals
+                              if w.date.year == current_year and w.date.month == month
+                              and w.withdrawal_type == 'group')
+
+            month_withdrawals = month_personal + month_group
+            net_flow = month_deposits - month_withdrawals
+
+            # Only include months with activity
+            if month_deposits > 0 or month_withdrawals > 0:
+                monthly_data.append([
+                    month_name,
+                    format_currency(month_deposits),
+                    format_currency(month_personal),
+                    format_currency(month_group),
+                    format_currency(month_withdrawals),
+                    format_currency(net_flow)
+                ])
+
+        # Add year total row
+        year_deposits = sum(d.amount for d in all_deposits if d.date.year == current_year)
+        year_personal = sum(w.amount for w in all_withdrawals
+                            if w.date.year == current_year and w.withdrawal_type == 'personal')
+        year_group = sum(w.amount for w in all_withdrawals
+                         if w.date.year == current_year and w.withdrawal_type == 'group')
+        year_withdrawals = year_personal + year_group
+        year_net = year_deposits - year_withdrawals
+
+        monthly_data.append([
+            f"Total {current_year}",
+            format_currency(year_deposits),
+            format_currency(year_personal),
+            format_currency(year_group),
+            format_currency(year_withdrawals),
+            format_currency(year_net)
+        ])
+
+        # Only add the table if there are months with activity
+        if len(monthly_data) > 2:  # Header + at least one month + total row
+            monthly_table = Table(monthly_data,
+                                  colWidths=[1.3 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch])
+            monthly_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                ('FONT', (0, 1), (-1, -2), base_font, 10),
+                ('FONT', (0, -1), (-1, -1), bold_font, 10),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            elements.append(monthly_table)
+
+    # ====================== USER BY USER ANALYSIS ======================
+    for user in users:
+        elements.append(PageBreak())
+        elements.append(Paragraph(f"User Report: {user.name}", heading_style))
+
+        # Get user transactions
+        deposits = user.deposits.order_by(Deposit.date).all()
+        personal_withdrawals = user.withdrawals.filter_by(withdrawal_type='personal').order_by(Withdrawal.date).all()
+        group_withdrawals = user.withdrawals.filter_by(withdrawal_type='group').order_by(Withdrawal.date).all()
+
+        # User Summary
+        user_summary_data = [
+            ["Email:", user.email],
+            ["Role:", user.role],
+            ["Total Deposited:", format_currency(user.total_deposited())],
+            ["Total Personal Withdrawals:", format_currency(sum(w.amount for w in personal_withdrawals))],
+            ["Total Group Withdrawals:", format_currency(sum(w.amount for w in group_withdrawals))],
+            ["Current Balance:", format_currency(user.balance())]
+        ]
+
+        user_summary_table = Table(user_summary_data, colWidths=[3 * inch, 6 * inch])
+        user_summary_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), base_font, 10),
+            ('FONT', (0, 0), (0, -1), bold_font, 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+            ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey)
+        ]))
+        elements.append(user_summary_table)
+        elements.append(Spacer(1, 0.3 * inch))
+
+        # Create yearly breakdown for this user
+        user_years = set()
+        for deposit in deposits:
+            user_years.add(deposit.date.year)
+        for withdrawal in personal_withdrawals + group_withdrawals:
+            user_years.add(withdrawal.date.year)
+
+        user_years = sorted(user_years)
+
+        if not user_years:
+            elements.append(Paragraph("No transaction history found for this user.", normal_style))
+            continue
+
+        # Yearly breakdown table
+        elements.append(Paragraph("Yearly Breakdown", subheading_style))
+
+        yearly_user_data = [["Year", "Deposits", "Personal W/D", "Group W/D", "Total W/D", "Net Flow"]]
+
+        for year in user_years:
+            # Calculate yearly totals for this user
+            year_deposits = sum(d.amount for d in deposits if d.date.year == year)
+            year_personal = sum(w.amount for w in personal_withdrawals if w.date.year == year)
+            year_group = sum(w.amount for w in group_withdrawals if w.date.year == year)
+            year_withdrawals = year_personal + year_group
+            net_flow = year_deposits - year_withdrawals
+
+            yearly_user_data.append([
+                f"{year}",
+                format_currency(year_deposits),
+                format_currency(year_personal),
+                format_currency(year_group),
+                format_currency(year_withdrawals),
+                format_currency(net_flow)
+            ])
+
+        # Add totals row
+        user_total_deposits = sum(d.amount for d in deposits)
+        user_total_personal = sum(w.amount for w in personal_withdrawals)
+        user_total_group = sum(w.amount for w in group_withdrawals)
+        user_total_withdrawals = user_total_personal + user_total_group
+        user_total_net = user_total_deposits - user_total_withdrawals
+
+        yearly_user_data.append([
+            "Total",
+            format_currency(user_total_deposits),
+            format_currency(user_total_personal),
+            format_currency(user_total_group),
+            format_currency(user_total_withdrawals),
+            format_currency(user_total_net)
+        ])
+
+        yearly_user_table = Table(yearly_user_data,
+                                  colWidths=[1.3 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch])
+        yearly_user_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -2), base_font, 10),
+            ('FONT', (0, -1), (-1, -1), bold_font, 10),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(yearly_user_table)
+
+        # Show monthly breakdown for current year if user has activity
+        current_year = datetime.now().year
+        if current_year in user_years:
+            elements.append(Spacer(1, 0.3 * inch))
+            elements.append(Paragraph(f"Monthly Breakdown for {current_year}", subheading_style))
+
+            monthly_user_data = [["Month", "Deposits", "Personal W/D", "Group W/D", "Total W/D", "Net Flow"]]
+            has_activity = False
+
+            for month in range(1, 13):
+                month_name = datetime(current_year, month, 1).strftime('%B')
+
+                month_deposits = sum(d.amount for d in deposits
+                                     if d.date.year == current_year and d.date.month == month)
+
+                month_personal = sum(w.amount for w in personal_withdrawals
+                                     if w.date.year == current_year and w.date.month == month)
+
+                month_group = sum(w.amount for w in group_withdrawals
+                                  if w.date.year == current_year and w.date.month == month)
+
+                month_withdrawals = month_personal + month_group
+                net_flow = month_deposits - month_withdrawals
+
+                # Only include months with activity
+                if month_deposits > 0 or month_withdrawals > 0:
+                    has_activity = True
+                    monthly_user_data.append([
+                        month_name,
+                        format_currency(month_deposits),
+                        format_currency(month_personal),
+                        format_currency(month_group),
+                        format_currency(month_withdrawals),
+                        format_currency(net_flow)
+                    ])
+
+            # Add year total row
+            year_deposits = sum(d.amount for d in deposits if d.date.year == current_year)
+            year_personal = sum(w.amount for w in personal_withdrawals if w.date.year == current_year)
+            year_group = sum(w.amount for w in group_withdrawals if w.date.year == current_year)
+            year_withdrawals = year_personal + year_group
+            year_net = year_deposits - year_withdrawals
+
+            if has_activity:
+                monthly_user_data.append([
+                    f"Total {current_year}",
+                    format_currency(year_deposits),
+                    format_currency(year_personal),
+                    format_currency(year_group),
+                    format_currency(year_withdrawals),
+                    format_currency(year_net)
+                ])
+
+                monthly_user_table = Table(monthly_user_data,
+                                           colWidths=[1.3 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch, 1.8 * inch,
+                                                      1.8 * inch])
+                monthly_user_table.setStyle(TableStyle([
+                    ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                    ('FONT', (0, 1), (-1, -2), base_font, 10),
+                    ('FONT', (0, -1), (-1, -1), bold_font, 10),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(monthly_user_table)
+            else:
+                elements.append(Paragraph(f"No activity recorded for {current_year}.", normal_style))
+
+        # If the user has withdrawals with reasons, show a section of recent activity with reasons
+        recent_withdrawals = (user.withdrawals.order_by(Withdrawal.date.desc())
+                              .limit(5).all())
+
+        if recent_withdrawals:
+            elements.append(Spacer(1, 0.3 * inch))
+            elements.append(Paragraph("Recent Withdrawal Activity", subheading_style))
+
+            withdrawal_data = [["Date", "Type", "Amount", "Reason"]]
+            for withdrawal in recent_withdrawals:
+                withdrawal_data.append([
+                    withdrawal.date.strftime("%d %b %Y"),
+                    withdrawal.withdrawal_type.capitalize(),
+                    format_currency(withdrawal.amount),
+                    wrap_text(withdrawal.reason)
+                ])
+
+            withdrawal_table = Table(withdrawal_data, colWidths=[1.5 * inch, 1.5 * inch, 1.5 * inch, 5 * inch])
+            withdrawal_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, 0), bold_font, 10),
+                ('FONT', (0, 1), (-1, -1), base_font, 10),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            elements.append(withdrawal_table)
+
+    # ====================== TOP USERS SECTION ======================
+    elements.append(PageBreak())
+    elements.append(Paragraph("Top Contributors and Account Holders", heading_style))
+
+    # Top depositors
+    elements.append(Paragraph("Top 10 Contributors (By Total Deposits)", subheading_style))
+    top_depositors = sorted(users, key=lambda u: u.total_deposited(), reverse=True)[:10]
+
+    if top_depositors:
+        top_depositors_data = [["Rank", "Name", "Role", "Total Deposited", "% of All Deposits"]]
+
+        for i, user in enumerate(top_depositors, 1):
+            user_deposit = user.total_deposited()
+            percentage = (user_deposit / total_deposited * 100) if total_deposited > 0 else 0
+
+            top_depositors_data.append([
+                f"{i}",
+                user.name,
+                user.role,
+                format_currency(user_deposit),
+                f"{percentage:.1f}%"
+            ])
+
+        top_depositors_table = Table(top_depositors_data,
+                                     colWidths=[0.7 * inch, 3 * inch, 1.5 * inch, 2 * inch, 2 * inch])
+        top_depositors_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -1), base_font, 10),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (4, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(top_depositors_table)
+    else:
+        elements.append(Paragraph("No deposit records found.", normal_style))
+
+    # Top account holders (by balance)
+    elements.append(Spacer(1, 0.5 * inch))
+    elements.append(Paragraph("Top 10 Account Holders (By Current Balance)", subheading_style))
+    top_balances = sorted(users, key=lambda u: u.balance(), reverse=True)[:10]
+
+    if top_balances:
+        top_balances_data = [["Rank", "Name", "Role", "Current Balance", "% of Total Balance"]]
+
+        for i, user in enumerate(top_balances, 1):
+            user_balance = user.balance()
+            percentage = (user_balance / total_balance * 100) if total_balance > 0 else 0
+
+            top_balances_data.append([
+                f"{i}",
+                user.name,
+                user.role,
+                format_currency(user_balance),
+                f"{percentage:.1f}%"
+            ])
+
+        top_balances_table = Table(top_balances_data,
+                                   colWidths=[0.7 * inch, 3 * inch, 1.5 * inch, 2 * inch, 2 * inch])
+        top_balances_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, 0), bold_font, 10),
+            ('FONT', (0, 1), (-1, -1), base_font, 10),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (4, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(top_balances_table)
+    else:
+        elements.append(Paragraph("No balance records found.", normal_style))
+
+    # Build PDF
+    doc.build(elements, onFirstPage=header_footer, onLaterPages=header_footer)
+
+    # Prepare response
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        download_name=filename,
+        as_attachment=True,
+        mimetype="application/pdf"
+    )
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

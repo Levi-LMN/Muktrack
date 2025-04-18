@@ -127,42 +127,77 @@
                                 <i class="fas fa-home me-1"></i> Home
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'users' %}active{% endif %}" href="{{ url_for('users') }}">
-                                <i class="fas fa-users me-1"></i> Users
+
+                        <!-- User Management Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userManagementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users me-1"></i> User Management
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="userManagementDropdown">
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'users' %}active{% endif %}" href="{{ url_for('users') }}">
+                                        <i class="fas fa-user-cog me-1"></i> Manage Users
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'download_all_users_report' %}active{% endif %}" href="{{ url_for('download_all_users_report') }}">
+                                        <i class="fas fa-file-download me-1"></i> Download Users Report
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'download_comprehensive_users_report' %}active{% endif %}" href="{{ url_for('download_comprehensive_users_report') }}">
+                                        <i class="fas fa-file-contract me-1"></i> Comprehensive Users Report
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'bulk_deposit' %}active{% endif %}" href="{{ url_for('bulk_deposit') }}">
-                                <i class="fas fa-download me-1"></i> Bulk Deposit
+
+                        <!-- Financial Operations Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="financesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-money-bill-wave me-1"></i> Financial Operations
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="financesDropdown">
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'bulk_deposit' %}active{% endif %}" href="{{ url_for('bulk_deposit') }}">
+                                        <i class="fas fa-download me-1"></i> Bulk Deposit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'withdraw' %}active{% endif %}" href="{{ url_for('withdraw') }}">
+                                        <i class="fas fa-money-check-alt me-1"></i> Withdraw
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'download_deposit_report' %}active{% endif %}" href="{{ url_for('download_deposit_report') }}">
+                                        <i class="fas fa-file-download me-1"></i> Download Deposit Report
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'duplicate_deposits' %}active{% endif %}" href="{{ url_for('duplicate_deposits') }}">
+                                        <i class="fas fa-copy me-1"></i> View Duplicates
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'audit_log' %}active{% endif %}" href="{{ url_for('audit_log') }}">
-                                <i class="fas fa-file-alt me-1"></i> Audit Log
+
+                        <!-- System Management Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="systemDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs me-1"></i> System Management
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'withdraw' %}active{% endif %}" href="{{ url_for('withdraw') }}">
-                                <i class="fas fa-money-check-alt me-1"></i> Withdraw
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'database_management' %}active{% endif %}" href="{{ url_for('database_management') }}">
-                                <i class="fas fa-database me-1"></i> Database Management
-                            </a>
-                        </li>
-                        <!-- New download link -->
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'download_deposit_report' %}active{% endif %}" href="{{ url_for('download_deposit_report') }}">
-                                <i class="fas fa-file-download me-1"></i> Download Deposit Report
-                            </a>
-                        </li>
-                        <!-- New delete duplicates link -->
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'duplicate_deposits' %}active{% endif %}" href="{{ url_for('duplicate_deposits') }}">
-                                <i class="fas fa-duplicate me-1"></i> View Duplicates
-                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="systemDropdown">
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'audit_log' %}active{% endif %}" href="{{ url_for('audit_log') }}">
+                                        <i class="fas fa-file-alt me-1"></i> Audit Log
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'database_management' %}active{% endif %}" href="{{ url_for('database_management') }}">
+                                        <i class="fas fa-database me-1"></i> Database Management
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                 {% endif %}
